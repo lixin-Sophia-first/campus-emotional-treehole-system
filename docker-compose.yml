@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-treehole}
+      POSTGRES_USER: ${POSTGRES_USER:-treehole}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-treehole_dev}
+    ports: ["5432:5432"]
+    volumes: ["treehole_pg:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-treehole}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./api
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-treehole}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-treehole}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-treehole_dev}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@treehole.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMe123!}
+      JWT_SECRET: ${JWT_SECRET:-local-development-secret-change-me-now}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+    ports: ["8080:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  web:
+    build: ./web
+    environment:
+      API_INTERNAL_URL: http://api:8080
+      NEXT_PUBLIC_API_URL: /api
+    ports: ["3000:3000"]
+    depends_on: [api]
+
+volumes:
+  treehole_pg:
+

@@ -1,0 +1,16 @@
+.DS_Store
+.idea/
+.vscode/
+*.iml
+.env
+.env.local
+!.env.example
+node_modules/
+.next/
+coverage/
+playwright-report/
+test-results/
+target/
+*.log
+data/
+
