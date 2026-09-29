@@ -1,0 +1,21 @@
+"use client";
+import {FormEvent,useEffect,useState} from "react";
+import {api,ApiError} from "@/lib/api";
+import type {RiskCase,User} from "@/lib/types";
+
+export default function Teacher(){
+ const[cases,setCases]=useState<RiskCase[]>([]),[user,setUser]=useState<User|null>(null),[error,setError]=useState(""),[selected,setSelected]=useState<RiskCase|null>(null),[identity,setIdentity]=useState("");
+ async function load(){try{const[u,c]=await Promise.all([api<User>("/auth/me"),api<RiskCase[]>("/risk-cases")]);setUser(u);setCases(c)}catch{location.href="/login"}}
+ useEffect(()=>{load()},[]);
+ async function act(path:string,body?:object){try{await api(path,{method:"POST",body:body?JSON.stringify(body):undefined});await load()}catch(e){setError(e instanceof ApiError?e.message:"操作失败")}}
+ async function getIdentity(c:RiskCase){try{const x=await api<{email:string;name:string}>(`/risk-cases/${c.id}/student-identity`);setIdentity(`${x.name} · ${x.email}`)}catch(e){setError(e instanceof ApiError?e.message:"无权查看")}}
+ return <div className="dashboard"><aside className="card sidebar"><div className="eyebrow">TEACHER</div><h3>关怀工作台</h3><a href="#queue">全校风险队列</a><a href="/resources">支持资源</a></aside><section><div className="eyebrow">CARE WITH BOUNDARIES</div><h1 className="sectionTitle" style={{fontSize:38}}>风险关怀队列</h1><p className="subtle">只显示必要信息。私人记录正文在任何风险等级下都不会开放。</p>{error&&<div className="notice">{error}</div>}<div className="statGrid"><div className="card stat"><span className="muted">开放事件</span><strong>{cases.filter(x=>x.status!=="CLOSED").length}</strong></div><div className="card stat"><span className="muted">危急事件</span><strong>{cases.filter(x=>x.riskLevel==="CRITICAL").length}</strong></div><div className="card stat"><span className="muted">我负责</span><strong>{cases.filter(x=>x.assigneeId===user?.id).length}</strong></div></div><div id="queue">{cases.map(c=>{const mine=c.assigneeId===user?.id;return <article className={`card case ${c.riskLevel==="CRITICAL"?"critical":""}`} key={c.id}><div className="caseTop"><div><span className={`risk ${c.riskLevel}`}>{c.riskLevel}</span><h3>{c.sourceVisibility==="PRIVATE"?"🔒 私人记录风险信号":"公开树洞风险事件"}</h3></div><span className="date">{new Date(c.createdAt).toLocaleString("zh-CN")}</span></div><p>{c.publicContent??"为保护隐私，私人记录正文不会显示。"}</p><div className="subtle">状态：{c.status} · 负责人：{c.assigneeName??"待认领"}</div><div className="caseActions">{!c.assigneeId&&<button className="button small" onClick={()=>act(`/risk-cases/${c.id}/claim`)}>认领事件</button>}{mine&&c.riskLevel==="HIGH"&&!c.identityAvailable&&<button className="button secondary small" onClick={()=>act(`/risk-cases/${c.id}/identity-request`,{reason:"为继续进行风险关怀，需要确认学生联系方式"})}>申请身份访问</button>}{c.identityAvailable&&<button className="button secondary small" onClick={()=>getIdentity(c)}>查看已授权身份</button>}{mine&&<><button className="button secondary small" onClick={()=>setSelected(c)}>进入关怀会话</button><button className="button secondary small" onClick={()=>act(`/risk-cases/${c.id}/propose-closure`,{note:"已完成关怀跟进，建议管理员复核结案"})}>提交结案建议</button></>}</div></article>})}</div>{selected&&<CaseConversation c={selected} close={()=>setSelected(null)}/>} {identity&&<div className="notice success">学生身份：{identity}</div>}</section></div>
+}
+
+function CaseConversation({c,close}:{c:RiskCase;close:()=>void}){
+ const[msgs,setMsgs]=useState<{id:string;senderName:string;content:string;createdAt:string}[]>([]),[text,setText]=useState("");
+ async function load(){setMsgs(await api<{id:string;senderName:string;content:string;createdAt:string}[]>(`/risk-cases/${c.id}/messages`))}
+ useEffect(()=>{load()},[]);
+ async function send(e:FormEvent){e.preventDefault();await api(`/risk-cases/${c.id}/messages`,{method:"POST",body:JSON.stringify({content:text})});setText("");load()}
+ return <div className="card" style={{marginTop:18}}><div className="caseTop"><h3>匿名关怀会话</h3><button className="linkButton" onClick={close}>关闭</button></div>{msgs.map(m=><p key={m.id}><strong>{m.senderName}：</strong>{m.content}</p>)}<form onSubmit={send} className="row"><input value={text} onChange={e=>setText(e.target.value)} placeholder="用尊重、非诊断性的方式回应……" required/><button className="button small">发送</button></form></div>
+}
