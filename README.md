@@ -7,9 +7,9 @@
 1. 安装 Docker Desktop。
 2. 复制 `.env.example` 为 `.env`，至少修改管理员密码和 JWT 密钥。
 3. 运行 `docker compose up --build`。
-4. 打开 `http://localhost:3000`，API 文档位于 `http://localhost:8080/swagger-ui.html`。
+4. 打开 `http://localhost:3000`，API 文档位于 `http://localhost:8080/swagger-ui.html`，本地邮件箱位于 `http://localhost:8025`。
 
-默认管理员邮箱来自 `ADMIN_EMAIL`。学生可自行注册，教师需提交申请并由管理员审核。
+默认管理员邮箱来自 `ADMIN_EMAIL`。学生注册后需在 Mailpit 打开验证链接；教师需提交申请并由管理员审核。
 
 ## 本地开发
 
