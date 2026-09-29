@@ -18,7 +18,7 @@ public class RiskCaseService {
     // Privacy invariant: private content is never copied into the case.
     c.setPublicContentSnapshot(record.getVisibility()==Visibility.PUBLIC ? record.getContent() : null);
     cases.save(c);
-    String title=record.getRiskLevel()==RiskLevel.CRITICAL?"发现危急风险事件":"发现高风险事件";
-    jdbc.update("insert into notifications(user_id,title,content) select id,?,? from users where role in ('ADMIN','TEACHER') and status='ACTIVE'",title,"新的匿名风险事件已进入关怀队列");
+    String title=record.getRiskLevel()==RiskLevel.CRITICAL?"Critical risk case detected":"High-risk case detected";
+    jdbc.update("insert into notifications(user_id,title,content) select id,?,? from users where role in ('ADMIN','TEACHER') and status='ACTIVE'",title,"A new anonymous risk case has entered the care queue");
   }
 }

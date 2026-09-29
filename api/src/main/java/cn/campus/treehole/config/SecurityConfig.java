@@ -19,9 +19,8 @@ public class SecurityConfig {
     return http.csrf(c->c.disable()).cors(c->{})
       .sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
       .authorizeHttpRequests(a->a
-        .requestMatchers("/api/v1/auth/**","/api/v1/teacher-applications","/api/v1/resources","/v3/api-docs/**","/swagger-ui/**","/actuator/health").permitAll()
+        .requestMatchers("/api/v1/auth/**","/api/v1/teacher-applications","/api/v1/resources","/v3/api-docs/**","/swagger-ui.html","/swagger-ui/**","/actuator/health","/error").permitAll()
         .anyRequest().authenticated())
       .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class).build();
   }
 }
-

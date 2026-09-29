@@ -14,8 +14,7 @@ public class ApiErrorHandler {
   }
   @ExceptionHandler(ApiException.class) ResponseEntity<?> api(ApiException e){ return ResponseEntity.status(e.status).body(Map.of("message",e.getMessage(),"timestamp",Instant.now())); }
   @ExceptionHandler(MethodArgumentNotValidException.class) ResponseEntity<?> validation(MethodArgumentNotValidException e){
-    var errors=e.getBindingResult().getFieldErrors().stream().collect(java.util.stream.Collectors.toMap(x->x.getField(),x->Optional.ofNullable(x.getDefaultMessage()).orElse("无效"),(a,b)->a));
-    return ResponseEntity.badRequest().body(Map.of("message","输入内容有误","errors",errors));
+    var errors=e.getBindingResult().getFieldErrors().stream().collect(java.util.stream.Collectors.toMap(x->x.getField(),x->Optional.ofNullable(x.getDefaultMessage()).orElse("Invalid"),(a,b)->a));
+    return ResponseEntity.badRequest().body(Map.of("message","Please check your input","errors",errors));
   }
 }
-

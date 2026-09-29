@@ -1,3 +1,2 @@
 import type { RiskLevel } from "./types";
-export function supportMessage(level:RiskLevel){return ({LOW:"谢谢你认真记录此刻的感受。给自己一点休息的空间。",MEDIUM:"试试 5-4-3-2-1 落地练习，慢慢把注意力带回当下。",HIGH:"你不需要独自承担这些。可以看看支持资源，或接受认证教师的匿名关怀。",CRITICAL:"你的安全最重要。请先远离可能伤害自己的物品，并立即联系可信赖的人或紧急支持服务。"})[level]}
-
+export function supportMessage(level:RiskLevel){return ({LOW:"Thank you for taking a moment to record how you feel. Give yourself room to rest.",MEDIUM:"Try the 5-4-3-2-1 grounding exercise and gently return your attention to the present.",HIGH:"You do not have to carry this alone. Explore support resources or anonymous care from a verified teacher.",CRITICAL:"Your safety matters most. Move away from anything you could use to hurt yourself and contact someone you trust or emergency support now."})[level]}

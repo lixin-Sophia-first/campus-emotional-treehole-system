@@ -27,12 +27,12 @@ public class AuthController {
   public record ResetRequest(@NotBlank String token,@Size(min=8,max=72) String password){}
   public record UserView(UUID id,String email,String name,Role role){}
   @PostMapping("/register") public UserView register(@Valid @RequestBody RegisterRequest req){
-    if(users.findByEmailIgnoreCase(req.email()).isPresent()) throw new ApiException(HttpStatus.CONFLICT,"邮箱已注册");
+    if(users.findByEmailIgnoreCase(req.email()).isPresent()) throw new ApiException(HttpStatus.CONFLICT,"This email is already registered");
     var u=new User(); u.setEmail(req.email().toLowerCase()); u.setPasswordHash(encoder.encode(req.password())); u.setDisplayName(req.name()); u.setRole(Role.STUDENT); u.setStatus(UserStatus.UNVERIFIED); users.save(u); tokens.sendVerification(u); return view(u);
   }
   @PostMapping("/login") public UserView login(@Valid @RequestBody LoginRequest req,HttpServletResponse response){
-    var u=users.findByEmailIgnoreCase(req.email()).orElseThrow(()->new ApiException(HttpStatus.UNAUTHORIZED,"邮箱或密码错误"));
-    if(u.getStatus()!=UserStatus.ACTIVE||!encoder.matches(req.password(),u.getPasswordHash())) throw new ApiException(HttpStatus.UNAUTHORIZED,"邮箱或密码错误");
+    var u=users.findByEmailIgnoreCase(req.email()).orElseThrow(()->new ApiException(HttpStatus.UNAUTHORIZED,"Incorrect email or password"));
+    if(u.getStatus()!=UserStatus.ACTIVE||!encoder.matches(req.password(),u.getPasswordHash())) throw new ApiException(HttpStatus.UNAUTHORIZED,"Incorrect email or password");
     var cookie=ResponseCookie.from("treehole_token",jwt.create(u.getEmail(),u.getRole().name())).httpOnly(true).sameSite("Lax").path("/").maxAge(Duration.ofHours(8)).build();
     response.addHeader(HttpHeaders.SET_COOKIE,cookie.toString()); return view(u);
   }

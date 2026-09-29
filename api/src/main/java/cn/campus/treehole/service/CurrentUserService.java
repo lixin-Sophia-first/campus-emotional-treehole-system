@@ -11,8 +11,7 @@ public class CurrentUserService {
   private final UserRepository users;
   public User get(){
     var a=SecurityContextHolder.getContext().getAuthentication();
-    if(a==null||!a.isAuthenticated()) throw new ApiException(HttpStatus.UNAUTHORIZED,"请先登录");
-    return users.findByEmailIgnoreCase(a.getName()).orElseThrow(()->new ApiException(HttpStatus.UNAUTHORIZED,"账号不存在"));
+    if(a==null||!a.isAuthenticated()) throw new ApiException(HttpStatus.UNAUTHORIZED,"Please sign in first");
+    return users.findByEmailIgnoreCase(a.getName()).orElseThrow(()->new ApiException(HttpStatus.UNAUTHORIZED,"Account not found"));
   }
 }
-

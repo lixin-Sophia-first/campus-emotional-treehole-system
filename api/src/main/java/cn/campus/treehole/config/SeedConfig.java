@@ -14,6 +14,6 @@ import static cn.campus.treehole.domain.Enums.*;
 public class SeedConfig {
   private final UserRepository users; private final PasswordEncoder encoder;
   @Bean CommandLineRunner seedAdmin(@Value("${app.admin-email}") String email,@Value("${app.admin-password}") String password){
-    return args->{ if(!users.existsByRole(Role.ADMIN)) { var u=new User(); u.setEmail(email.toLowerCase()); u.setPasswordHash(encoder.encode(password)); u.setDisplayName("系统管理员"); u.setRole(Role.ADMIN); users.save(u); } };
+    return args->{ if(!users.existsByRole(Role.ADMIN)) { var u=new User(); u.setEmail(email.toLowerCase()); u.setPasswordHash(encoder.encode(password)); u.setDisplayName("System Administrator"); u.setRole(Role.ADMIN); users.save(u); } };
   }
 }
