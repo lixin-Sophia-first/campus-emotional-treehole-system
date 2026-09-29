@@ -5,7 +5,8 @@ import cn.campus.treehole.repo.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import static cn.campus.treehole.domain.Enums.*;
 
@@ -16,4 +17,3 @@ public class SeedConfig {
     return args->{ if(!users.existsByRole(Role.ADMIN)) { var u=new User(); u.setEmail(email.toLowerCase()); u.setPasswordHash(encoder.encode(password)); u.setDisplayName("系统管理员"); u.setRole(Role.ADMIN); users.save(u); } };
   }
 }
-

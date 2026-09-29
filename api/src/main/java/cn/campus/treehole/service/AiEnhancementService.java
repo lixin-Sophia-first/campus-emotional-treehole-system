@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.*;
 import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.web.client.RestClient;
 import java.util.*;
 
