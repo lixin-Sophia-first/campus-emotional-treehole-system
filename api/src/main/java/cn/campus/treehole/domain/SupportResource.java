@@ -16,5 +16,6 @@ public class SupportResource {
   @Column(nullable=false) private boolean active = true;
   @Column(nullable=false) private int version = 1;
   @Column(name="created_at", insertable=false, updatable=false) private Instant createdAt;
-  @Column(name="updated_at", insertable=false, updatable=false) private Instant updatedAt;
+  @Column(name="updated_at", insertable=false) private Instant updatedAt;
+  @PreUpdate void touch(){updatedAt=Instant.now();}
 }

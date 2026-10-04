@@ -18,8 +18,7 @@ public class JwtService {
   public String create(String email, String role) {
     Instant now=Instant.now();
     return Jwts.builder().subject(email).claim("role", role).issuedAt(Date.from(now))
-      .expiration(Date.from(now.plus(Duration.ofHours(8)))).signWith(key).compact();
+      .expiration(Date.from(now.plus(Duration.ofMinutes(15)))).signWith(key).compact();
   }
   public Claims parse(String token) { return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload(); }
 }
-

@@ -15,6 +15,15 @@ spring:
 server:
   error:
     include-message: always
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
   jwt-secret: ${JWT_SECRET:local-development-secret-change-me-now}

@@ -21,6 +21,7 @@ public class EmotionRecord {
   @Column(name="support_card", nullable=false) private String supportCard = "ENCOURAGEMENT";
   @Column(name="recommendation_eligible", nullable=false) private boolean recommendationEligible = true;
   @Enumerated(EnumType.STRING) @Column(name="moderation_status", nullable=false) private ModerationStatus moderationStatus = ModerationStatus.PUBLISHED;
+  @Column(name="violation_category",nullable=false) private String violationCategory="NONE";
   @Column(name="deleted_at") private Instant deletedAt;
   @Column(name="created_at", insertable=false, updatable=false) private Instant createdAt;
   @Column(name="updated_at", insertable=false, updatable=false) private Instant updatedAt;

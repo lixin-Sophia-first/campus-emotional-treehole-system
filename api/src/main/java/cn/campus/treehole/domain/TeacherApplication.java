@@ -16,6 +16,7 @@ public class TeacherApplication {
   @Column(nullable=false) private String department;
   @Column(nullable=false, columnDefinition="text") private String statement;
   @Enumerated(EnumType.STRING) @Column(nullable=false) private ApplicationStatus status = ApplicationStatus.PENDING;
+  @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="reviewed_by") private User reviewedBy;
+  @Column(name="reviewed_at") private Instant reviewedAt;
   @Column(name="created_at", insertable=false, updatable=false) private Instant createdAt;
 }
-

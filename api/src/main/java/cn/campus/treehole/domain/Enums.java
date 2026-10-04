@@ -3,7 +3,7 @@ package cn.campus.treehole.domain;
 public final class Enums {
   private Enums() {}
   public enum Role { ADMIN, TEACHER, STUDENT }
-  public enum UserStatus { UNVERIFIED, ACTIVE, DISABLED }
+  public enum UserStatus { UNVERIFIED, ACTIVE, DISABLED, BANNED }
   public enum Visibility { PUBLIC, PRIVATE }
   public enum RiskLevel { LOW, MEDIUM, HIGH, CRITICAL }
   public enum ModerationStatus { PUBLISHED, PENDING_REVIEW, HIDDEN, DELETED }
