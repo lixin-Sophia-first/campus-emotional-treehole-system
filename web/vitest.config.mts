@@ -1,0 +1,7 @@
+import {defineConfig} from "vitest/config";
+import path from "node:path";
+
+export default defineConfig({
+  test:{environment:"jsdom",setupFiles:["./test/setup.ts"],exclude:["e2e/**","node_modules/**"]},
+  resolve:{alias:{"@":path.resolve(import.meta.dirname,".")}}
+});
