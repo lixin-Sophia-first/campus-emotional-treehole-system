@@ -10,6 +10,7 @@ import static cn.campus.treehole.domain.Enums.*;
 public class EmotionRecord {
   @Id @GeneratedValue(strategy=GenerationType.UUID) private UUID id;
   @ManyToOne(fetch=FetchType.LAZY, optional=false) @JoinColumn(name="author_id") private User author;
+  @Column(nullable=false, length=160) private String title;
   @Column(nullable=false, columnDefinition="text") private String content;
   @Enumerated(EnumType.STRING) @Column(nullable=false) private Visibility visibility;
   @Column(nullable=false) private String emotion;
