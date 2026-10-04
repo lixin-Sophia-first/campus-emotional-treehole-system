@@ -16,6 +16,7 @@ public class EmotionRecord {
   @Column(nullable=false) private int intensity;
   @Column(nullable=false) private String tags = "";
   @Column(name="anonymous_alias", nullable=false) private String anonymousAlias;
+  @Column(name="is_anonymous",nullable=false) private boolean anonymous = true;
   @Enumerated(EnumType.STRING) @Column(name="risk_level", nullable=false) private RiskLevel riskLevel = RiskLevel.LOW;
   @Column(name="risk_reasons", nullable=false, columnDefinition="text") private String riskReasons = "";
   @Column(name="support_card", nullable=false) private String supportCard = "ENCOURAGEMENT";

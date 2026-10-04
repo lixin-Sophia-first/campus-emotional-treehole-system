@@ -18,7 +18,7 @@ public class RiskCaseService {
     var c=new RiskCase(); c.setRecord(record); c.setStudent(record.getAuthor()); c.setRiskLevel(record.getRiskLevel()); c.setSourceVisibility(record.getVisibility());
     // Privacy invariant: private content is never copied into the case.
     c.setPublicContentSnapshot(record.getVisibility()==Visibility.PUBLIC ? record.getContent() : null);
-    cases.save(c);jdbc.update("insert into risk_case_history(case_id,action,to_status,details) values (?,?,?,?)",c.getId(),"CASE_CREATED",c.getStatus().name(),"Created from "+record.getRiskLevel()+" risk signal");
+    cases.saveAndFlush(c);jdbc.update("insert into risk_case_history(case_id,action,to_status,details) values (?,?,?,?)",c.getId(),"CASE_CREATED",c.getStatus().name(),"Created from "+record.getRiskLevel()+" risk signal");
     String title=record.getRiskLevel()==RiskLevel.CRITICAL?"Critical risk case detected":"High-risk case detected";
     notifyRoles(title,"A new anonymous risk case has entered the care queue");
   }

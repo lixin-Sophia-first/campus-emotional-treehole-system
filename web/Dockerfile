@@ -1,7 +1,7 @@
 FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm ci --omit=optional --fetch-retries=5 --fetch-retry-mintimeout=20000
 FROM node:24-alpine AS build
 WORKDIR /app
 ARG API_INTERNAL_URL=http://api:8080
