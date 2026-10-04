@@ -1,21 +1,19 @@
 package cn.campus.treehole.web;
-import cn.campus.treehole.domain.SupportResource;
-import cn.campus.treehole.repo.SupportResourceRepository;
-import cn.campus.treehole.service.CurrentUserService;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-import java.time.Instant;
-import java.util.*;
+import cn.campus.treehole.domain.*;import cn.campus.treehole.repo.SupportResourceRepository;import cn.campus.treehole.service.CurrentUserService;import cn.campus.treehole.web.ApiErrorHandler.ApiException;import jakarta.validation.Valid;import jakarta.validation.constraints.*;import lombok.RequiredArgsConstructor;import org.springframework.http.HttpStatus;import org.springframework.jdbc.core.JdbcTemplate;import org.springframework.security.access.prepost.PreAuthorize;import org.springframework.transaction.annotation.Transactional;import org.springframework.web.bind.annotation.*;import java.time.Instant;import java.util.*;import static cn.campus.treehole.domain.Enums.*;
 @RestController @RequestMapping("/api/v1/resources") @RequiredArgsConstructor
 public class ResourceController {
-  private final SupportResourceRepository resources; private final CurrentUserService current;
-  public record Request(@NotBlank String title,@NotBlank String summary,@NotBlank String content,@NotBlank String type){}
-  public record View(UUID id,String title,String summary,String content,String type,String author,Instant updatedAt){}
-  @GetMapping public List<View> list(){ return resources.findByActiveTrueOrderByUpdatedAtDesc().stream().map(this::view).toList(); }
-  @PostMapping @PreAuthorize("hasAnyRole('TEACHER','ADMIN')") public View create(@Valid @RequestBody Request req){ var r=new SupportResource(); r.setAuthor(current.get()); r.setTitle(req.title()); r.setSummary(req.summary()); r.setContent(req.content()); r.setResourceType(req.type()); return view(resources.save(r)); }
-  private View view(SupportResource r){ return new View(r.getId(),r.getTitle(),r.getSummary(),r.getContent(),r.getResourceType(),r.getAuthor().getDisplayName(),r.getUpdatedAt()); }
+ private final SupportResourceRepository resources;private final CurrentUserService current;private final JdbcTemplate jdbc;
+ public record Request(@NotBlank @Size(max=180)String title,@NotBlank String summary,@NotBlank String content,@NotBlank String type){}
+ public record View(UUID id,String title,String summary,String content,String type,String author,int version,boolean active,boolean mine,Instant updatedAt){}
+ @GetMapping public List<View> list(){var viewer=current.optional().orElse(null);return resources.findByActiveTrueOrderByUpdatedAtDesc().stream().map(r->view(r,viewer)).toList();}
+ @GetMapping("/admin/all") @PreAuthorize("hasRole('ADMIN')") public List<View> all(){var viewer=current.get();return resources.findAll().stream().sorted(Comparator.comparing(SupportResource::getCreatedAt,Comparator.nullsLast(Comparator.reverseOrder()))).map(r->view(r,viewer)).toList();}
+ @PostMapping @PreAuthorize("hasRole('TEACHER')") @Transactional public View create(@Valid @RequestBody Request req){var actor=current.get();var r=new SupportResource();r.setAuthor(actor);apply(r,req);resources.save(r);version(r,actor);audit(actor,"CREATE_RESOURCE",r.getId(),"");return view(r,actor);}
+ @PutMapping("/{id}") @PreAuthorize("hasAnyRole('TEACHER','ADMIN')") @Transactional public View update(@PathVariable UUID id,@Valid @RequestBody Request req){var user=current.get();var r=resources.findById(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Resource not found"));if(user.getRole()==Role.TEACHER&&!r.getAuthor().getId().equals(user.getId()))throw new ApiException(HttpStatus.FORBIDDEN,"You can only edit resources you published");r.setVersion(r.getVersion()+1);apply(r,req);version(r,user);audit(user,"UPDATE_RESOURCE",id,"version="+r.getVersion());return view(r,user);}
+ @PostMapping("/{id}/deactivate") @PreAuthorize("hasRole('ADMIN')") @Transactional public void deactivate(@PathVariable UUID id){var r=resources.findById(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Resource not found"));r.setActive(false);audit(current.get(),"DEACTIVATE_RESOURCE",id,"");}
+ @PostMapping("/{id}/restore") @PreAuthorize("hasRole('ADMIN')") @Transactional public void restore(@PathVariable UUID id){var r=resources.findById(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Resource not found"));r.setActive(true);audit(current.get(),"RESTORE_RESOURCE",id,"");}
+ @GetMapping("/{id}/versions") @PreAuthorize("hasAnyRole('TEACHER','ADMIN')") public List<Map<String,Object>> versions(@PathVariable UUID id){return jdbc.queryForList("select v.id,v.version,v.title,v.summary,v.content,v.resource_type,v.created_at,u.display_name editor from resource_versions v join users u on u.id=v.editor_id where v.resource_id=? order by v.version desc",id);}
+ private void apply(SupportResource r,Request q){r.setTitle(q.title());r.setSummary(q.summary());r.setContent(q.content());r.setResourceType(q.type());}
+ private void version(SupportResource r,User editor){jdbc.update("insert into resource_versions(resource_id,version,title,summary,content,resource_type,editor_id) values (?,?,?,?,?,?,?)",r.getId(),r.getVersion(),r.getTitle(),r.getSummary(),r.getContent(),r.getResourceType(),editor.getId());}
+ private void audit(User actor,String action,UUID target,String details){jdbc.update("insert into audit_logs(actor_id,action,target_type,target_id,details) values (?,?,?,?,?)",actor.getId(),action,"RESOURCE",target,details);}
+ private View view(SupportResource r,User viewer){return new View(r.getId(),r.getTitle(),r.getSummary(),r.getContent(),r.getResourceType(),r.getAuthor().getDisplayName(),r.getVersion(),r.isActive(),viewer!=null&&r.getAuthor().getId().equals(viewer.getId()),r.getUpdatedAt());}
 }
-
