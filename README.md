@@ -136,4 +136,4 @@ Backend integration tests use Testcontainers and therefore require Docker. The r
 
 ## Git workflow
 
-`main` should remain runnable. Use short-lived branches prefixed with `codex/` and Conventional Commits such as `feat: add risk case transfer`. The original prototype is tagged `v1.0.0`; the completed platform is released as `v1.1.0`. A private GitHub remote can be added when repository credentials are available.
+`main` should remain runnable. Use short-lived branches prefixed with `codex/` and Conventional Commits such as `feat: add risk case transfer`. The original prototype is tagged `v1.0.0`; the `v1.1.x` tags preserve later development milestones. GitHub's `main` branch contains the current version.
