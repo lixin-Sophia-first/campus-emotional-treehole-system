@@ -1,19 +1,17 @@
 # Tree Hole
 
-Tree Hole is an English-language, full-stack campus community and emotional-support **portfolio project**. Students can share a public post or keep a private journal entry through the same editor. Certified teachers support students through anonymous risk-case conversations, while one administrator reviews content, access requests and case closure.
+Tree Hole is a campus space for putting feelings into words. Students can share a post with the community—anonymously if they choose—or keep it as a private journal entry. Both start in the same editor; the visibility setting determines who can read and interact with the result.
 
-The central design choice is to represent both posts and private entries as an **emotion record** with different visibility rules. Emotional risk detection is separate from content moderation: asking for help is not itself a policy violation.
+When a record suggests serious distress, the platform creates a case that an approved teacher can claim and follow up through an anonymous conversation. An administrator oversees public-post review, identity-access requests and case closure. Private journal text stays with its author, even when a risk case is created.
 
-### What this project demonstrates
+### Highlights
 
-- **Full-stack workflows:** student, teacher and administrator interfaces; registration with local email verification; public community interactions; private timelines and trends.
-- **Privacy-aware risk handling:** four risk levels, review of high-risk public posts, teacher case claiming and assignment, anonymous care, approval-gated identity access and audit history. Teachers and administrators cannot read private entry bodies.
-- **Resilient AI integration:** immediate English-language local rules plus an optional asynchronous OpenAI-compatible classifier for public posts only. Database-backed tasks expose status and retries; an unavailable model does not block the local assessment.
-- **Engineering practices:** Spring Security, PostgreSQL/Flyway migrations, Docker Compose, JUnit/Testcontainers, Vitest and a Playwright community-flow test.
+- **One record, two ways to share:** public posts support community interaction; private entries stay in the student's timeline. Both contribute to personal mood trends.
+- **People remain in the loop:** teachers claim and follow up on risk cases; administrators review high-risk public posts, approve sensitive identity access and make final closure decisions.
+- **Privacy by design:** teachers and administrators cannot read private entry bodies. Emotional distress and content-policy violations are assessed separately, so asking for help is not treated as misconduct.
+- **Works without an AI key:** local English-language rules run immediately. An optional OpenAI-compatible classifier can analyze public posts asynchronously; private entries are never sent to it.
 
-This is a **local demonstration**, not a deployed campus service or clinically validated crisis-detection system. Use synthetic accounts and posts when trying it. External AI is optional and is not configured by default; adding an API key is not required to run the project.
-
-> This application supports care workflows. It does not provide medical diagnosis and does not automatically contact a school, family member or emergency service.
+This is a local demonstration, not a deployed campus service or clinically validated crisis-detection system. Use synthetic accounts and posts when trying it. External AI is optional and is not configured by default. The application does not diagnose anyone or automatically contact a school, family member or emergency service.
 
 ## Technology
 
