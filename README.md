@@ -48,6 +48,12 @@ Browser
 
 Flyway owns the database schema. Hibernate validates it at startup but does not create or silently change production tables. AI work is stored in a database task queue so failures and retries are visible to the administrator.
 
+### AI classification
+
+Every entry receives an immediate English-language local-rule assessment. This is a safety aid, not a diagnosis. It creates a risk case for `HIGH` or `CRITICAL` signals even when no external service is configured. Private entries are local-only and never sent to an external AI endpoint. Public entries may be analyzed asynchronously by an OpenAI-compatible `/chat/completions` service when all three `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL` values are set. `AI_BASE_URL` should include the provider's API prefix (for example, a local service's `/v1` path), but not `/chat/completions` itself.
+
+The model must return the required structured JSON fields for emotion, intensity, risk, plan, timing, means, content violation, confidence, support card and reason. Invalid or unavailable responses are retried up to three times; the local decision remains in force. Model results can raise but cannot lower an existing risk level. An explicit-plan signal with timing or means is treated as `CRITICAL`. Support messages shown to students come from fixed, reviewed templates, not generated model prose. The administrator's AI analysis page shows the task status and both local and model results, and permits a public-post reanalysis when the endpoint is configured.
+
 ## Role and privacy matrix
 
 | Capability | Student | Teacher | Administrator |
