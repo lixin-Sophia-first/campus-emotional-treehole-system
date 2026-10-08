@@ -1,9 +1,13 @@
 package cn.campus.treehole.service;
 
 import cn.campus.treehole.domain.Enums.Visibility;
+import cn.campus.treehole.domain.Enums.ModerationStatus;
+import cn.campus.treehole.domain.Enums.RiskLevel;
 import cn.campus.treehole.repo.EmotionRecordRepository;
+import cn.campus.treehole.web.ApiErrorHandler.ApiException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -19,6 +23,7 @@ public class AiEnhancementService {
   private final RiskAnalysisService local;
   private final AiModelClient model;
   private final AiTaskProcessor processor;
+  private final RiskCaseService cases;
   private final JdbcTemplate jdbc;
 
   @TransactionalEventListener(phase=TransactionPhase.AFTER_COMMIT)
@@ -31,11 +36,46 @@ public class AiEnhancementService {
     String status=model.configured()&&record.getVisibility()==Visibility.PUBLIC&&record.getDeletedAt()==null
       ?"PENDING":"SKIPPED";
     jdbc.update("insert into ai_analysis_tasks(id,record_id,status) values (?,?,?)",taskId,record.getId(),status);
+    saveLocalResult(taskId,record.getId(),analysis);
+  }
+
+  @Transactional
+  public UUID reanalyseLocal(UUID recordId){
+    var access=jdbc.queryForList("select id from emotion_records where id=? and deleted_at is null for update",recordId);
+    if(access.isEmpty())throw new ApiException(HttpStatus.NOT_FOUND,"Entry not found");
+    var record=records.findById(recordId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Entry not found"));
+    var analysis=local.analyze(record.getContent());
+    UUID taskId=UUID.randomUUID();
+    jdbc.update("insert into ai_analysis_tasks(id,record_id,status) values (?,?,'SKIPPED')",taskId,recordId);
+    saveLocalResult(taskId,recordId,analysis);
+    boolean wasPending=record.getModerationStatus()==ModerationStatus.PENDING_REVIEW;
+    if(analysis.level().ordinal()>record.getRiskLevel().ordinal()){
+      record.setRiskLevel(analysis.level());
+      record.setRiskReasons(String.join("; ",analysis.reasons()));
+      record.setSupportCard(analysis.card());
+    }
+    RiskLevel finalRisk=record.getRiskLevel();
+    record.setRecommendationEligible(finalRisk.ordinal()<RiskLevel.HIGH.ordinal());
+    if(analysis.violation()){
+      record.setViolationCategory(analysis.violationCategory());
+      if(record.getVisibility()==Visibility.PUBLIC)record.setModerationStatus(ModerationStatus.PENDING_REVIEW);
+    }
+    if(record.getVisibility()==Visibility.PUBLIC&&finalRisk.ordinal()>=RiskLevel.HIGH.ordinal())
+      record.setModerationStatus(ModerationStatus.PENDING_REVIEW);
+    records.save(record);
+    if(!wasPending&&record.getModerationStatus()==ModerationStatus.PENDING_REVIEW)
+      jdbc.update("insert into notifications(user_id,title,content,target_path) values (?,?,?,?)",record.getAuthor().getId(),
+        "Post awaiting review","Updated local analysis marked your post for administrator review.","/records/"+recordId);
+    cases.ensureCase(record);
+    return taskId;
+  }
+
+  private void saveLocalResult(UUID taskId,UUID recordId,RiskAnalysisService.Analysis analysis){
     jdbc.update("""
       insert into ai_analysis_results(task_id,record_id,source,primary_emotion,intensity,risk_level,
       explicit_plan,imminent_timing,means_present,violation_category,confidence,support_card,reason)
       values (?,?,?,?,?,?,?,?,?,?,?,?,?)
-      """,taskId,record.getId(),"LOCAL",analysis.primaryEmotion(),analysis.intensity(),analysis.level().name(),
+      """,taskId,recordId,"LOCAL",analysis.primaryEmotion(),analysis.intensity(),analysis.level().name(),
       analysis.explicitPlan(),analysis.imminentTiming(),analysis.meansPresent(),analysis.violationCategory(),
       analysis.confidence(),analysis.card(),String.join("; ",analysis.reasons()));
   }

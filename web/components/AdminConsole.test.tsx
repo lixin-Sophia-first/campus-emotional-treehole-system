@@ -16,6 +16,7 @@ it("shows local private analysis without an external retry action",async()=>{
   render(<AdminConsole section="ai"/>);
   expect(await screen.findByText(/Local English risk rules remain active/)).toBeInTheDocument();
   expect(screen.getByText(/Private entry: local rules only/)).toBeInTheDocument();
+  expect(screen.getByRole("button",{name:"Run local rules again"})).toBeInTheDocument();
   expect(screen.queryByRole("button",{name:"Reanalyse public post"})).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button",{name:"View analysis results"}));
   await waitFor(()=>expect(screen.getByText(/Local rules · HIGH/)).toBeInTheDocument());

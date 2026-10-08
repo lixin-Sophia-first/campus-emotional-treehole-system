@@ -3,6 +3,7 @@ package cn.campus.treehole;
 import cn.campus.treehole.service.RiskAutoAssignmentService;
 import cn.campus.treehole.service.AiModelClient;
 import cn.campus.treehole.service.AiTaskProcessor;
+import cn.campus.treehole.service.AiEnhancementService;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,7 @@ class PostgresContextTest {
   @Autowired JdbcTemplate jdbc;
   @Autowired RiskAutoAssignmentService autoAssignment;
   @Autowired AiTaskProcessor aiProcessor;
+  @Autowired AiEnhancementService aiAnalysis;
   @Autowired AiModelClient aiModel;
 
   @Test void applicationStartsWithRealPostgres(){assertThat(postgres.isRunning()).isTrue();}
@@ -63,6 +65,20 @@ class PostgresContextTest {
       assertThat(jdbc.queryForObject("select status from ai_analysis_tasks where id=?",String.class,task)).isEqualTo("SKIPPED");
       assertThat(jdbc.queryForObject("select count(*) from ai_analysis_results where task_id=? and source='MODEL'",Long.class,task)).isZero();
     }finally{clearModelConfiguration();}
+  }
+
+  @Test @Transactional void privateLocalReanalysisCanCreateCaseWithoutCopyingItsBody(){
+    var student=java.util.UUID.randomUUID();var record=java.util.UUID.randomUUID();
+    insertStudentAndRecord(student,record,"PRIVATE");
+    jdbc.update("update emotion_records set content=? where id=?","I have a plan to kill myself tonight",record);
+
+    var task=aiAnalysis.reanalyseLocal(record);
+
+    assertThat(jdbc.queryForObject("select risk_level from emotion_records where id=?",String.class,record)).isEqualTo("CRITICAL");
+    assertThat(jdbc.queryForObject("select status from ai_analysis_tasks where id=?",String.class,task)).isEqualTo("SKIPPED");
+    assertThat(jdbc.queryForObject("select public_content_snapshot from risk_cases where record_id=?",String.class,record)).isNull();
+    String reason=jdbc.queryForObject("select reason from ai_analysis_results where task_id=? and source='LOCAL'",String.class,task);
+    assertThat(reason).contains("Self-harm expression").doesNotContain("kill myself","tonight");
   }
 
   @Test @Transactional void validModelResultUpgradesPublicRiskAndCreatesCase() throws Exception {
