@@ -54,7 +54,7 @@ export default function Teacher(){
     <section>
       <div className="eyebrow">CARE WITH BOUNDARIES</div>
       <h1 className="sectionTitle" style={{fontSize:38}}>Risk care queue</h1>
-      <p className="subtle">Claim or open an assigned case to start an anonymous care conversation. Private entry content is never disclosed.</p>
+      <p className="subtle">Claim an unassigned case to start anonymous care. Cases still unclaimed after 24 hours are assigned automatically. Private entry content is never disclosed.</p>
       {error&&<div className="notice" role="alert">{error}</div>}
       <div className="statGrid">
         <div className="card stat"><span className="muted">Unclaimed</span><strong>{cases.filter(c=>!c.assigneeId&&c.status!=="CLOSED").length}</strong></div>

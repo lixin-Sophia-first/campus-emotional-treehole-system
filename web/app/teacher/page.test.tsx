@@ -26,3 +26,16 @@ it("shows approved identity automatically and expands care inside its own case",
   await waitFor(()=>expect(within(card!).getByRole("region",{name:"Case workspace"})).toBeInTheDocument());
   expect(apiMock).toHaveBeenCalledWith("/risk-cases/case-1/student-identity");
 });
+
+it("lets a teacher claim a case before automatic assignment",async()=>{
+  const riskCase={id:"case-2",riskLevel:"HIGH",sourceVisibility:"PRIVATE",publicContent:null,status:"OPEN",assigneeId:null,assigneeName:null,mine:false,identityAvailable:false,identityRequestPending:false,studentDeclined:false,falsePositive:false,closureNote:null,createdAt:"2026-10-08T00:00:00Z"};
+  apiMock.mockImplementation((path:string)=>{
+    if(path==="/auth/me")return Promise.resolve({id:"teacher-1",email:"teacher@example.test",name:"Teacher",role:"TEACHER"});
+    if(path==="/risk-cases")return Promise.resolve([riskCase]);
+    if(path==="/risk-cases/case-2/claim")return Promise.resolve({...riskCase,status:"IN_PROGRESS",assigneeId:"teacher-1"});
+    throw new Error(`Unexpected API path: ${path}`);
+  });
+  render(<Teacher/>);
+  fireEvent.click(await screen.findByRole("button",{name:"Claim case"}));
+  await waitFor(()=>expect(apiMock).toHaveBeenCalledWith("/risk-cases/case-2/claim",{method:"POST",body:undefined}));
+});

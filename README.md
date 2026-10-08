@@ -65,7 +65,9 @@ Flyway owns the database schema. Hibernate validates it at startup but does not 
 
 Private record text is never copied into a risk case, AI task row, analysis result or audit log. A private event exposes only classification metadata. Reassignment immediately removes the previous teacher's case and identity access because access is always checked against the current assignee. Identity views and sensitive case changes are audited.
 
-The optional external AI classifier is a separate privacy decision: when `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL` are configured, the API sends the record body to that endpoint for classification, including private entries. With those values unset, classification stays local. Do not configure an external provider for real student entries until its data handling and the required student consent have been approved.
+Private entries are always analyzed by local English rules only. Even when `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL` are configured, only public record bodies may be sent to the optional external AI classifier. Existing private tasks and administrator retries cannot send private text to that service.
+
+Teachers may claim an unassigned risk case. The administrator may assign or transfer it at any time. A case still unclaimed 24 hours after creation is automatically assigned to an active teacher with the fewest active cases; the background job checks every minute. If no active teacher exists, it remains in the queue for administrator attention.
 
 ## Risk levels
 
@@ -96,9 +98,9 @@ Backend integration tests use Testcontainers and therefore require Docker. The r
 
 ## Before any real-campus deployment
 
-- Decide whether private entries may be sent to an external AI provider. The local-only configuration avoids that transfer; enabling the optional endpoint currently sends the entry body.
+- Review the optional external AI provider before sending public record bodies to it. Private entries remain local-only.
 - Replace local test email and example support contacts with verified campus services, opening hours and an agreed human response/escalation procedure. The software does not contact emergency services automatically.
-- Define who may register, how teacher staff identity is verified, and who is responsible for reviewing applications and risk cases when the administrator is unavailable.
+- Anyone with a working email address may register as a student. Define how teacher staff identity is verified and who handles cases when the administrator is unavailable and no active teacher can accept automatic assignment.
 - Approve retention, deletion and access-review periods for private records, risk-case metadata, messages and audit logs. Soft-deleting a record does not erase its historical case/audit data.
 - Review deployment security before exposing the site publicly: HTTPS, production email, backups, secrets, monitoring and access-token revocation. Logging out or resetting a password revokes refresh tokens, but an already-issued access token can remain usable until its 15-minute expiry.
 
@@ -108,7 +110,7 @@ Backend integration tests use Testcontainers and therefore require Docker. The r
 2. Create one public record and one private record; confirm only the public record appears in Community.
 3. Open the student's timeline and switch between weekly and monthly trends.
 4. Create an English HIGH or CRITICAL example and show that it is excluded from Recommended and Popular.
-5. Sign in as an approved teacher, claim the case and open the anonymous care workspace.
+5. Sign in as an approved teacher, claim the case and open the anonymous care workspace. An unclaimed case is assigned automatically after 24 hours.
 6. For HIGH, request identity access and approve it as the administrator. For CRITICAL, show that only the current assignee can view identity.
 7. Transfer the case and confirm the former teacher loses access.
 8. Add a follow-up and propose closure; confirm or return it as the administrator.
