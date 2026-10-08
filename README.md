@@ -1,102 +1,62 @@
 # Tree Hole
 
-Tree Hole is a campus app built around a simple choice: share a thought with the community or keep it to yourself. Students can write a public post, choose whether to appear as “Stranger”, or save the same kind of entry as a private journal. They can also look back at their mood over time.
+Tree Hole is a campus space where students can share what is on their mind or keep it in a private journal. The project started with a question beyond posting: if a student writes something concerning, how can the system bring a real person into the loop without treating the student as a rule-breaker or exposing more of their writing than necessary?
 
-The harder question is what happens when a post suggests someone may need help. Tree Hole gives that signal a path to a person: a teacher can take on the case and offer support through an anonymous conversation, while an administrator handles review and sensitive access decisions. It keeps emotional risk separate from rule-breaking, because asking for help should not be treated as misconduct.
+I built the student experience, the teacher care workflow, and the administrator tools around that question. This is a local demonstration project, not a counseling or emergency-response service.
 
-This is a local demo project, not a live counseling service. Please use invented accounts and posts when exploring it.
+## What I built
 
-## Take a look
+### One record, two ways to use it
 
-- **As a student:** verify an email address, write public or private entries, browse and interact with public posts, see mood trends, and read support resources.
-- **As a teacher:** apply for access, claim a risk case, talk with the student anonymously, record follow-ups, and suggest when a case can close. Teachers can also publish support resources.
-- **As an administrator:** approve teacher applications, review held posts and reports, assign or transfer cases, decide identity-access requests, and make the final closure decision.
+Public treehole posts and private journal entries share the same editor and emotion-record model. Students choose the visibility of each entry, can look back through their own timeline and mood trends, and can interact with public posts through comments, likes, bookmarks, and reports. A public author can appear as **Stranger**; private writing remains visible only to its author, including when it triggers a risk case.
 
-Private journal text is visible only to its author. A teacher or administrator may see that a private entry triggered a risk case, but not what the student wrote.
+The community includes Latest, Recommended, Popular, search, and tag filtering. Posts have detail pages, while administrators have a separate review path for reported or held content.
 
-## Run it locally
+### A path from risk detection to human care
 
-You need Docker Desktop running. From the repository root, create a local config file:
+The system treats emotional risk and content violations as separate decisions. Distress alone does not count as misconduct. Each entry receives a LOW, MEDIUM, HIGH, or CRITICAL assessment and an appropriate support card. HIGH and CRITICAL entries create risk cases. Public posts at those levels wait for administrator review before appearing in the community; private entries never enter the community.
+
+Teachers can claim cases and speak with students in an anonymous care conversation. An administrator can assign or transfer a case, and an unclaimed case is automatically assigned after 24 hours if an active teacher is available. Teachers record follow-ups and recommend closure; only the administrator can close a case. Notifications and audit records track the important handoffs.
+
+I made identity access depend on the case level and current ownership. For a HIGH case, the assigned teacher must request administrator approval to see the student's account. For a CRITICAL case, the current assigned teacher receives access automatically. Reassignment removes the previous teacher's access. Neither path reveals the body of a private journal entry.
+
+### AI as a second assessment, not a counselor
+
+Every new entry is assessed immediately by local, English-language rules. They look for signals such as negation, first-person statements, plans, timing, and means, and retain the reasons behind a risk result. This first pass works even when no external AI service is configured.
+
+For **public posts only**, an optional OpenAI-compatible service can provide a second assessment in the background. A database-backed job records its state, attempts, errors, and structured result: emotion, intensity, risk level, plan/time/means signals, possible policy violations, confidence, and a support-card category. Administrators can inspect the analysis and retry a failed job. Private journal text is never sent to that service or copied into the job or risk-case records.
+
+The model can raise a risk level, but it cannot override a stronger local warning with a lower one. Timeouts, missing credentials, and invalid model responses leave the local result in place. Students receive reviewed support-card templates rather than free-form model advice. This is assistance with triage, not a diagnosis or an AI chat companion.
+
+### The application around it
+
+Students register and verify an email address. Teachers apply for access, then manage their cases, conversations, follow-ups, and support resources. The administrator approves teacher applications, moderates content, manages accounts, reviews AI jobs, controls sensitive identity access, and makes final case decisions. The interface and current risk rules are designed for English input; Chinese risk recognition has not been validated.
+
+## How it is built
+
+- **Frontend:** Next.js 16, React 19, TypeScript
+- **Backend:** Java 21, Spring Boot 4.1, Spring Security, Spring Data JPA
+- **Data and local services:** PostgreSQL 17, Flyway, Docker Compose, Mailpit
+- **Checks:** JUnit and Testcontainers for the API; Vitest and a Playwright visitor/community smoke test for the web app
+
+The Next.js app talks to the Spring Boot API, which stores records, risk cases, notifications, and analysis jobs in PostgreSQL. Mailpit captures verification emails during local development. The external AI endpoint is optional.
+
+## Run locally
+
+Start Docker Desktop and copy the example configuration from the repository root:
 
 ```bash
 cp .env.example .env
 ```
 
-Change `ADMIN_PASSWORD` and `JWT_SECRET` in `.env`, then start the app:
+Change `ADMIN_PASSWORD` and `JWT_SECRET` in `.env`, then run:
 
 ```bash
 docker compose up -d --build
 ```
 
-The example file is for development; never commit your real `.env` or reuse its example passwords in a deployed system. The external AI settings can stay empty.
+Open the app at <http://localhost:3000>, test email at <http://localhost:8025>, and API documentation at <http://localhost:8080/swagger-ui.html>. The administrator credentials come from `.env`; the optional AI settings can remain empty. Use invented accounts and posts for the demo, and never commit `.env`.
 
-Once the containers are healthy, open:
+## Limits of this demo
 
-| | Local address |
-|---|---|
-| Tree Hole | <http://localhost:3000> |
-| Test inbox | <http://localhost:8025> |
-| API documentation | <http://localhost:8080/swagger-ui.html> |
-
-The administrator signs in with the `ADMIN_EMAIL` and `ADMIN_PASSWORD` values from `.env`. Student verification emails appear in the test inbox. A teacher submits an application first; the administrator must approve it before the teacher workspace opens.
-
-To stop the app, run `docker compose down`. Your local PostgreSQL data stays in its Docker volume. `docker compose down -v` also deletes that data, so only use it when you intend to start over.
-
-## A short walkthrough
-
-1. Register a student and open the verification email in Mailpit.
-2. Write one public post and one private entry. The community shows only the public one; both appear in the student's own timeline and trends.
-3. Post a **synthetic English** example that triggers HIGH risk. The post is saved but held from the community until an administrator reviews it. The student gets a notification.
-4. Approve a teacher application, then claim the risk case. The student and teacher can talk without the teacher seeing the student's account by default.
-5. For a HIGH case, the teacher can request identity access and the administrator decides. The teacher can suggest closure, but only the administrator can close the case.
-
-You can also try comments, likes, bookmarks, reports, teacher-written resources and notifications. The demo works without an external AI key.
-
-## How the risk flow works
-
-The app checks each new entry right away using local rules written for English text. LOW and MEDIUM entries are saved normally, with different support cards for the student. HIGH and CRITICAL entries create a risk case. If the entry is public, it waits for administrator review before anyone else can see it. An approved high-risk post can appear in Latest and search, but not in Recommended or Popular. A private entry never enters the community.
-
-Teachers can claim unassigned cases; an administrator can assign or transfer them. If no teacher claims a case within 24 hours, a background job assigns it to an active teacher when one is available. For HIGH cases, a teacher needs administrator approval to see the student's account. For CRITICAL cases, only the current assigned teacher gets that access automatically. A transfer removes the previous teacher's access. Identity views and case changes are audited.
-
-Risk is **not** the same as a content violation. Harassment, sexual content, illegal content and spam follow a separate moderation path. The system does not ban someone merely for expressing distress.
-
-## Where AI fits
-
-The local rules are always available. If `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL` are configured, **public** posts can also be analyzed asynchronously by an OpenAI-compatible `/chat/completions` service. The base URL includes the provider's API prefix, such as `/v1`, but not `/chat/completions` itself. Private entries are never sent to that service.
-
-Analysis jobs live in PostgreSQL, so the administrator can see their status, inspect results and retry failed jobs. A missing, slow or invalid model response leaves the local assessment in place. The model may raise a risk level but cannot lower one already found by the local rules. Students see support cards from fixed templates, not free-form model advice.
-
-Neither the rules nor the model provide a diagnosis. The current rules are designed for English input; Chinese risk recognition has not been validated.
-
-## Under the hood
-
-- **Web:** Next.js 16, React 19 and TypeScript
-- **API:** Java 21, Spring Boot 4.1, Spring Security and Spring Data JPA
-- **Data:** PostgreSQL 17, with schema changes managed by Flyway
-- **Local services:** Docker Compose and Mailpit for test email
-
-The browser talks to the Next.js app, which proxies API requests to Spring Boot. The API stores records, cases and analysis jobs in PostgreSQL. Mailpit catches development emails; an external AI endpoint is optional.
-
-To run the checks locally, use Node.js 24 for the web app and Java 21/Maven 3.9 for the API. Docker must be running for the backend's Testcontainers tests.
-
-```bash
-cd web
-npm ci
-npm test
-npm run build
-```
-
-```bash
-cd ../api
-mvn test
-```
-
-With the application running, `npm run test:e2e` from `web` runs the current Playwright visitor/community smoke test. It does not yet cover the full three-role workflow.
-
-## Before using this beyond a demo
-
-Tree Hole is not clinically validated and does not automatically contact a family member, school or emergency service. The 24-hour assignment fallback is not an emergency-response promise. A real campus rollout would need verified support contacts, a staffed response and escalation plan, consent and retention rules, and a review of any external AI provider before public posts are sent to it.
-
-It would also need production email, HTTPS, backups, secret management, monitoring and more security testing. Anyone with a working email address can currently register as a student; teacher applications are reviewed manually by the administrator. Deleting an entry is a soft delete and does not erase the associated case or audit history. Access tokens may remain valid for up to 15 minutes after logout or password reset.
-
-The Git tags mark development milestones, starting with the original `v1.0.0` prototype. The current code is on `main`.
+Tree Hole does not automatically contact family, the school, or emergency services. Its rules are not clinically validated, and the 24-hour assignment fallback is not an emergency-response guarantee. A real campus rollout would require a staffed response policy, verified local support contacts, consent and data-retention decisions, production security and monitoring, and a review of any external AI provider. The current Playwright test is a smoke test, not full end-to-end coverage of all three roles.
