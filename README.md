@@ -1,6 +1,17 @@
 # Tree Hole
 
-Tree Hole is an English-language campus anonymous community and emotional-support platform. A public treehole post and a private journal entry are both represented as an **emotion record**; visibility determines whether the record enters the community. Risk detection and content moderation are deliberately separate.
+Tree Hole is an English-language, full-stack campus community and emotional-support **portfolio project**. Students can share a public post or keep a private journal entry through the same editor. Certified teachers support students through anonymous risk-case conversations, while one administrator reviews content, access requests and case closure.
+
+The central design choice is to represent both posts and private entries as an **emotion record** with different visibility rules. Emotional risk detection is separate from content moderation: asking for help is not itself a policy violation.
+
+### What this project demonstrates
+
+- **Full-stack workflows:** student, teacher and administrator interfaces; registration with local email verification; public community interactions; private timelines and trends.
+- **Privacy-aware risk handling:** four risk levels, review of high-risk public posts, teacher case claiming and assignment, anonymous care, approval-gated identity access and audit history. Teachers and administrators cannot read private entry bodies.
+- **Resilient AI integration:** immediate English-language local rules plus an optional asynchronous OpenAI-compatible classifier for public posts only. Database-backed tasks expose status and retries; an unavailable model does not block the local assessment.
+- **Engineering practices:** Spring Security, PostgreSQL/Flyway migrations, Docker Compose, JUnit/Testcontainers, Vitest and a Playwright community-flow test.
+
+This is a **local demonstration**, not a deployed campus service or clinically validated crisis-detection system. Use synthetic accounts and posts when trying it. External AI is optional and is not configured by default; adding an API key is not required to run the project.
 
 > This application supports care workflows. It does not provide medical diagnosis and does not automatically contact a school, family member or emergency service.
 
