@@ -65,6 +65,8 @@ Flyway owns the database schema. Hibernate validates it at startup but does not 
 
 Private record text is never copied into a risk case, AI task row, analysis result or audit log. A private event exposes only classification metadata. Reassignment immediately removes the previous teacher's case and identity access because access is always checked against the current assignee. Identity views and sensitive case changes are audited.
 
+The optional external AI classifier is a separate privacy decision: when `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL` are configured, the API sends the record body to that endpoint for classification, including private entries. With those values unset, classification stays local. Do not configure an external provider for real student entries until its data handling and the required student consent have been approved.
+
 ## Risk levels
 
 | Level | Automated handling | Student experience | Teacher workflow |
@@ -91,6 +93,14 @@ mvn test
 ```
 
 Backend integration tests use Testcontainers and therefore require Docker. The repository must never contain API keys, passwords, database exports, logs, Mailpit messages or personal data.
+
+## Before any real-campus deployment
+
+- Decide whether private entries may be sent to an external AI provider. The local-only configuration avoids that transfer; enabling the optional endpoint currently sends the entry body.
+- Replace local test email and example support contacts with verified campus services, opening hours and an agreed human response/escalation procedure. The software does not contact emergency services automatically.
+- Define who may register, how teacher staff identity is verified, and who is responsible for reviewing applications and risk cases when the administrator is unavailable.
+- Approve retention, deletion and access-review periods for private records, risk-case metadata, messages and audit logs. Soft-deleting a record does not erase its historical case/audit data.
+- Review deployment security before exposing the site publicly: HTTPS, production email, backups, secrets, monitoring and access-token revocation. Logging out or resetting a password revokes refresh tokens, but an already-issued access token can remain usable until its 15-minute expiry.
 
 ## Demonstration flow
 

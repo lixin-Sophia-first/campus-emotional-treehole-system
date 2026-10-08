@@ -21,10 +21,15 @@ public class RefreshTokenService {
   private final SecureRandom random=new SecureRandom();
 
   @Transactional public Issued issue(User user){ return insert(user,null); }
-  @Transactional public UserAndToken rotate(String raw){
-    var rows=jdbc.queryForList("select id,user_id from refresh_tokens where token_hash=? and revoked_at is null and expires_at>now() for update",hash(raw));
+  @Transactional(noRollbackFor=ApiException.class) public UserAndToken rotate(String raw){
+    var rows=jdbc.queryForList("select id,user_id,revoked_at,replaced_by,expires_at>now() as unexpired from refresh_tokens where token_hash=? for update",hash(raw));
     if(rows.isEmpty()) throw new ApiException(HttpStatus.UNAUTHORIZED,"Your session has expired. Please sign in again");
     UUID oldId=(UUID)rows.getFirst().get("id"),userId=(UUID)rows.getFirst().get("user_id");
+    if(rows.getFirst().get("revoked_at")!=null){
+      if(rows.getFirst().get("replaced_by")!=null)revokeAll(userId);
+      throw new ApiException(HttpStatus.UNAUTHORIZED,"This session token was already used. Please sign in again");
+    }
+    if(!Boolean.TRUE.equals(rows.getFirst().get("unexpired")))throw new ApiException(HttpStatus.UNAUTHORIZED,"Your session has expired. Please sign in again");
     var user=users.findById(userId).orElseThrow(()->new ApiException(HttpStatus.UNAUTHORIZED,"Account not found"));
     var next=insert(user,null); UUID replacement=jdbc.queryForObject("select id from refresh_tokens where token_hash=?",UUID.class,hash(next.raw()));
     jdbc.update("update refresh_tokens set revoked_at=now(),replaced_by=? where id=?",replacement,oldId);
