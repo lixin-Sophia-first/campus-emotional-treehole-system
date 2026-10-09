@@ -55,4 +55,23 @@ class AiModelClientTest {
       assertThat(received.get()).contains("A public test post").contains("mock-model");
     }finally{server.stop(0);}
   }
+
+  @Test void draftsOnlyAStructuredRuleSuggestion() throws Exception {
+    var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
+    server.createContext("/v1/chat/completions",exchange->{
+      byte[] response=json.writeValueAsBytes(Map.of("choices",new Object[]{Map.of("message",Map.of("content",
+        "{\"phrase\":\"I wish I would not wake up\",\"rationale\":\"First-person expression of distress.\"}"))}));
+      exchange.getResponseHeaders().set("Content-Type","application/json");
+      exchange.sendResponseHeaders(200,response.length);
+      try(var body=exchange.getResponseBody()){body.write(response);}
+    });
+    server.start();
+    try{
+      ReflectionTestUtils.setField(client,"baseUrl","http://127.0.0.1:"+server.getAddress().getPort()+"/v1");
+      ReflectionTestUtils.setField(client,"apiKey","test-key");
+      ReflectionTestUtils.setField(client,"model","mock-model");
+      assertThat(client.suggestRiskPhrase("I wish I would not wake up tomorrow").phrase())
+        .isEqualTo("I wish I would not wake up");
+    }finally{server.stop(0);}
+  }
 }

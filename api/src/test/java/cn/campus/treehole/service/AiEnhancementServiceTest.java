@@ -18,7 +18,7 @@ class AiEnhancementServiceTest {
     var model=mock(AiModelClient.class);
     var processor=mock(AiTaskProcessor.class);
     var jdbc=mock(JdbcTemplate.class);
-    var service=new AiEnhancementService(records,new RiskAnalysisService(),model,processor,mock(RiskCaseService.class),jdbc);
+    var service=new AiEnhancementService(records,new RiskAnalysisService(java.util.List::of),model,processor,mock(RiskCaseService.class),jdbc);
     when(model.configured()).thenReturn(true);
     UUID id=UUID.randomUUID();
     var record=new EmotionRecord();record.setId(id);record.setVisibility(Visibility.PRIVATE);record.setContent("I feel worried today");
@@ -34,7 +34,7 @@ class AiEnhancementServiceTest {
     var jdbc=mock(JdbcTemplate.class);
     var model=mock(AiModelClient.class);
     var processor=mock(AiTaskProcessor.class);
-    new AiEnhancementService(mock(EmotionRecordRepository.class),new RiskAnalysisService(),model,processor,mock(RiskCaseService.class),jdbc).processQueue();
+    new AiEnhancementService(mock(EmotionRecordRepository.class),new RiskAnalysisService(java.util.List::of),model,processor,mock(RiskCaseService.class),jdbc).processQueue();
     verify(jdbc).update(contains("Private or deleted entry: local analysis only"));
     verify(jdbc).update(contains("External model not configured; local analysis remains active"));
     verifyNoInteractions(processor);

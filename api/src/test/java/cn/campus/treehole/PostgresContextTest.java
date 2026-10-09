@@ -4,6 +4,8 @@ import cn.campus.treehole.service.RiskAutoAssignmentService;
 import cn.campus.treehole.service.AiModelClient;
 import cn.campus.treehole.service.AiTaskProcessor;
 import cn.campus.treehole.service.AiEnhancementService;
+import cn.campus.treehole.service.RiskRuleCandidateService;
+import cn.campus.treehole.service.RiskAnalysisService;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,8 @@ class PostgresContextTest {
   @Autowired AiTaskProcessor aiProcessor;
   @Autowired AiEnhancementService aiAnalysis;
   @Autowired AiModelClient aiModel;
+  @Autowired RiskRuleCandidateService ruleCandidates;
+  @Autowired RiskAnalysisService localRules;
 
   @Test void applicationStartsWithRealPostgres(){assertThat(postgres.isRunning()).isTrue();}
 
@@ -104,6 +108,38 @@ class PostgresContextTest {
       assertThat(jdbc.queryForObject("select recommendation_eligible from emotion_records where id=?",Boolean.class,record)).isFalse();
       assertThat(jdbc.queryForObject("select count(*) from risk_cases where record_id=?",Long.class,record)).isEqualTo(1L);
       assertThat(jdbc.queryForObject("select count(*) from ai_analysis_results where task_id=? and source='MODEL'",Long.class,task)).isEqualTo(1L);
+      assertThat(jdbc.queryForObject("select count(*) from risk_rule_candidates where task_id=? and status='DETECTED'",Long.class,task)).isEqualTo(1L);
+    }finally{clearModelConfiguration();server.stop(0);}
+  }
+
+  @Test @Transactional void confirmedModelGapNeedsDraftAndActivationBeforeLocalRuleChanges() throws Exception {
+    var student=java.util.UUID.randomUUID();var record=java.util.UUID.randomUUID();var task=java.util.UUID.randomUUID();
+    insertStudentAndRecord(student,record,"PUBLIC");
+    jdbc.update("update emotion_records set content=? where id=?","I wish I would not wake up tomorrow",record);
+    jdbc.update("insert into ai_analysis_tasks(id,record_id,status) values (?,?,?)",task,record,"SUCCEEDED");
+    var candidate=java.util.UUID.randomUUID();
+    jdbc.update("insert into risk_rule_candidates(id,task_id,record_id,local_risk,model_risk) values (?,?,?,?,?)",candidate,task,record,"LOW","HIGH");
+    jdbc.update("insert into risk_cases(record_id,student_id,risk_level,source_visibility) values (?,?,?,?)",record,student,"HIGH","PUBLIC");
+    assertThat(localRules.analyze("I wish I would not wake up tomorrow").level().name()).isEqualTo("LOW");
+    ruleCandidates.confirm(candidate,student);
+    var server=HttpServer.create(new java.net.InetSocketAddress("127.0.0.1",0),0);
+    server.createContext("/v1/chat/completions",exchange->{
+      String proposed="{\"phrase\":\"I wish I would not wake up\",\"rationale\":\"A first-person expression of not wanting to wake.\"}";
+      byte[] response=tools.jackson.databind.json.JsonMapper.builder().build().writeValueAsBytes(java.util.Map.of("choices",new Object[]{java.util.Map.of("message",java.util.Map.of("content",proposed))}));
+      exchange.getResponseHeaders().set("Content-Type","application/json");exchange.sendResponseHeaders(200,response.length);
+      try(var body=exchange.getResponseBody()){body.write(response);}
+    });
+    server.start();
+    ReflectionTestUtils.setField(aiModel,"baseUrl","http://127.0.0.1:"+server.getAddress().getPort()+"/v1");
+    ReflectionTestUtils.setField(aiModel,"apiKey","test-key");ReflectionTestUtils.setField(aiModel,"model","mock-model");
+    try{
+      ruleCandidates.draft(candidate,student);
+      assertThat(localRules.analyze("I wish I would not wake up tomorrow").level().name()).isEqualTo("LOW");
+      ruleCandidates.activate(candidate,student);
+      assertThat(localRules.analyze("I wish I would not wake up tomorrow").level().name()).isEqualTo("HIGH");
+      ruleCandidates.disable(candidate,student);
+      assertThat(localRules.analyze("I wish I would not wake up tomorrow").level().name()).isEqualTo("LOW");
+      assertThat(jdbc.queryForObject("select count(*) from audit_logs where target_id=?",Long.class,candidate)).isEqualTo(4L);
     }finally{clearModelConfiguration();server.stop(0);}
   }
 

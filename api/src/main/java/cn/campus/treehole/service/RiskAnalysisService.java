@@ -8,9 +8,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
+import lombok.RequiredArgsConstructor;
 
-@Service
+@Service @RequiredArgsConstructor
 public class RiskAnalysisService {
+  private final RiskRuleCatalog ruleCatalog;
   public record Analysis(RiskLevel level,List<String> reasons,String card,boolean violation,
                          String violationCategory,boolean explicitPlan,boolean imminentTiming,
                          boolean meansPresent,double confidence,String primaryEmotion,int intensity) {}
@@ -51,7 +53,8 @@ public class RiskAnalysisService {
     boolean means=firstAffirmed(normalized,MEANS,reasons,"Potential means");
     RiskLevel level=RiskLevel.LOW;
     if(self&&(plan||timing||means))level=RiskLevel.CRITICAL;
-    else if(self||firstAffirmed(normalized,HIGH,reasons,"Severe hopelessness"))level=RiskLevel.HIGH;
+    else if(self||firstAffirmed(normalized,HIGH,reasons,"Severe hopelessness")
+      ||firstAffirmed(normalized,ruleCatalog.activeHighPhrases(),reasons,"Reviewed risk rule"))level=RiskLevel.HIGH;
     else if(firstAffirmed(normalized,MEDIUM,reasons,"Sustained distress"))level=RiskLevel.MEDIUM;
     else firstAffirmed(normalized,LOW,reasons,"Everyday distress");
 
@@ -75,6 +78,10 @@ public class RiskAnalysisService {
       reasons.add("First-person self-harm intent");return true;
     }
     return false;
+  }
+  public boolean matchesReviewedPhrase(String text,String phrase){
+    String normalized=text.toLowerCase(Locale.ROOT).replace('’','\'').replaceAll("\\s+"," ").trim();
+    return firstAffirmed(normalized,List.of(phrase.toLowerCase(Locale.ROOT)),new ArrayList<>(),"Reviewed risk rule");
   }
   private boolean firstAffirmed(String text,List<String> phrases,List<String> reasons,String label){
     for(String phrase:phrases){

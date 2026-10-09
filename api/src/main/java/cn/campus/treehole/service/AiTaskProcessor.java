@@ -29,6 +29,8 @@ public class AiTaskProcessor {
     }
     EmotionRecord record=records.findById(recordId).orElseThrow();
     AiModelClient.Assessment result=model.analyzePublicText(record.getContent());
+    var localResults=jdbc.queryForList("select risk_level from ai_analysis_results where task_id=? and source='LOCAL' order by created_at desc limit 1",taskId);
+    RiskLevel localRisk=localResults.isEmpty()?record.getRiskLevel():RiskLevel.valueOf((String)localResults.getFirst().get("risk_level"));
     RiskLevel finalRisk=record.getRiskLevel().ordinal()>result.riskLevel().ordinal()?record.getRiskLevel():result.riskLevel();
     jdbc.update("""
       insert into ai_analysis_results(task_id,record_id,source,primary_emotion,intensity,risk_level,
@@ -37,6 +39,13 @@ public class AiTaskProcessor {
       """,taskId,recordId,"MODEL",result.primaryEmotion(),result.intensity(),result.riskLevel().name(),
       result.explicitPlan(),result.imminentTiming(),result.meansPresent(),result.violationCategory(),
       result.confidence(),result.supportCard(),result.reason());
+    if(localRisk.ordinal()<RiskLevel.HIGH.ordinal()&&result.riskLevel().ordinal()>=RiskLevel.HIGH.ordinal())
+      jdbc.update("""
+        insert into risk_rule_candidates(task_id,record_id,local_risk,model_risk)
+        select ?,?,?,? where not exists
+          (select 1 from risk_cases where record_id=? and false_positive=true)
+        on conflict (task_id) do nothing
+        """,taskId,recordId,localRisk.name(),result.riskLevel().name(),recordId);
     boolean wasPending=record.getModerationStatus()==ModerationStatus.PENDING_REVIEW;
     if(finalRisk.ordinal()>record.getRiskLevel().ordinal()){
       record.setRiskLevel(finalRisk);

@@ -22,3 +22,18 @@ it("shows local private analysis without an external retry action",async()=>{
   await waitFor(()=>expect(screen.getByText(/Local rules · HIGH/)).toBeInTheDocument());
   expect(screen.getByText("Severe hopelessness")).toBeInTheDocument();
 });
+
+it("keeps model-suggested rules inactive until separate admin confirmation and activation",async()=>{
+  apiMock.mockImplementation((path:string,init?:RequestInit)=>{
+    if(path==="/admin/ai-status")return Promise.resolve({externalModelConfigured:true,privateEntriesLocalOnly:true});
+    if(path==="/admin/risk-rule-candidates")return Promise.resolve([{id:"candidate-1",version:1,record_id:"record-1",local_risk:"LOW",model_risk:"HIGH",status:"DETECTED",phrase:null,rationale:null,title:"A public post",content:"A synthetic example",created_at:"2026-10-08T00:00:00Z"}]);
+    if(init?.method==="POST")return Promise.resolve(undefined);
+    return Promise.resolve([]);
+  });
+  render(<AdminConsole section="ai"/>);
+  expect(await screen.findByText(/Rule gap #1: local LOW → model HIGH/)).toBeInTheDocument();
+  expect(screen.getByRole("button",{name:"Confirm this risk"})).toBeInTheDocument();
+  expect(screen.queryByRole("button",{name:"Activate rule"})).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button",{name:"Confirm this risk"}));
+  await waitFor(()=>expect(apiMock).toHaveBeenCalledWith("/admin/risk-rule-candidates/candidate-1/confirm",{method:"POST",body:undefined}));
+});

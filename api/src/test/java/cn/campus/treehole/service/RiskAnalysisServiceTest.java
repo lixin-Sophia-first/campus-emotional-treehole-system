@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static cn.campus.treehole.domain.Enums.RiskLevel;
 
 class RiskAnalysisServiceTest {
-  private final RiskAnalysisService service=new RiskAnalysisService();
+  private final RiskAnalysisService service=new RiskAnalysisService(java.util.List::of);
   @Test void keepsEverydayStressLow(){ assertThat(service.analyze("I feel stressed about exams").level()).isEqualTo(RiskLevel.LOW); }
   @Test void detectsSustainedDistress(){ assertThat(service.analyze("I am very anxious and cannot sleep").level()).isEqualTo(RiskLevel.MEDIUM); }
   @Test void detectsHighRiskLanguage(){ assertThat(service.analyze("I cannot go on and there is no hope").level()).isEqualTo(RiskLevel.HIGH); }
@@ -21,4 +21,11 @@ class RiskAnalysisServiceTest {
   @Test void ordinaryFutureTenseDoesNotCountAsAnExplicitPlan(){var a=service.analyze("I am going to class, but I want to kill myself");assertThat(a.level()).isEqualTo(RiskLevel.HIGH);assertThat(a.explicitPlan()).isFalse();}
   @Test void explicitlyPlannedSelfHarmIsCriticalWithoutASeparateTimeWord(){assertThat(service.analyze("I'm going to end my life").level()).isEqualTo(RiskLevel.CRITICAL);}
   @Test void savedRuleReasonsDescribeCategoriesWithoutRepeatingPrivatePhrases(){var a=service.analyze("I have a plan to kill myself with pills tonight");assertThat(a.reasons()).contains("Self-harm expression","Explicit plan","Potential means");assertThat(String.join("; ",a.reasons())).doesNotContain("kill myself","pills","tonight");}
+  @Test void approvedPhraseRaisesFutureLocalResultWithoutRevealingPhraseInReasons(){
+    var withRule=new RiskAnalysisService(()->java.util.List.of("i wish i would not wake up"));
+    var result=withRule.analyze("I wish I would not wake up tomorrow");
+    assertThat(result.level()).isEqualTo(RiskLevel.HIGH);
+    assertThat(result.reasons()).contains("Reviewed risk rule");
+    assertThat(String.join("; ",result.reasons())).doesNotContain("wake up");
+  }
 }

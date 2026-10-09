@@ -28,6 +28,8 @@ For **public posts only**, an optional OpenAI-compatible service can provide a s
 
 The model can raise a risk level, but it cannot override a stronger local warning with a lower one. Timeouts, missing credentials, and invalid model responses leave the local result in place. Students receive reviewed support-card templates rather than free-form model advice. This is assistance with triage, not a diagnosis or an AI chat companion.
 
+When a model marks a public post HIGH or CRITICAL but the local rules did not, the admin console records the disagreement. An administrator can confirm the case, ask the model to draft a short candidate phrase, and separately activate it as a future HIGH-risk local rule. Candidates are checked against their source and a small set of benign examples, versioned, audited, and reversible. Editing the source text, deleting the post, or making it private withdraws its rule. This workflow is a review aid, not evidence that the new rule has been clinically validated.
+
 ### The application around it
 
 Students register and verify an email address. Teachers apply for access, then manage their cases, conversations, follow-ups, and support resources. The administrator approves teacher applications, moderates content, manages accounts, reviews AI jobs, controls sensitive identity access, and makes final case decisions. The interface and current risk rules are designed for English input; Chinese risk recognition has not been validated.
